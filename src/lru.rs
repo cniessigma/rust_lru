@@ -39,6 +39,8 @@ pub trait LRU<K: Eq + Hash + Copy, T: Copy> {
     // reference at a time, and both of those data structures are
     // mutable. This seems clunkier than assigning to 
     // a variable, but I don't know if there is any way around it?
+    // If I had access to the underlying struct then that would work
+    // too but... I want to keep this logic in the trait.
     match self.hash_table().get(&key) {
       // Entry exists! Replace it, THEN move it back
       Some(&ptr) => {
