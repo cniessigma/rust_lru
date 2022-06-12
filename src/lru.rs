@@ -7,6 +7,8 @@ pub mod veclru;
 pub trait LRU<K: Eq + Hash + Copy, T: Copy> {
   type List: DLL<(K, T)>;
 
+  fn new(capacity: usize) -> Self;
+
   fn get(&mut self, key: K) -> Option<T> {
     let table = self.hash_table();
     let ptr = match table.get(&key) {
@@ -69,3 +71,47 @@ pub trait LRU<K: Eq + Hash + Copy, T: Copy> {
   fn linked_list(&mut self) -> &mut Self::List;
 }
 
+#[macro_use]
+mod macros {
+  macro_rules! lru_tests {
+    ($type:ident) => {
+      #[cfg(test)]
+      mod test {
+        use super::*;
+
+        #[test]
+        fn test() {
+          let mut lru: $type<&str, i32>;
+          lru = $type::new(3);
+        
+          assert_eq!(lru.get(&"Hello"), None);
+        
+          lru.put("Hello", 1);
+          lru.put("Amy", 2);
+          lru.put("Santiago", 3);
+        
+          assert_eq!(lru.get("Hello").unwrap(), 1);
+          assert_eq!(lru.get("Amy").unwrap(), 2);
+          assert_eq!(lru.get("Santiago").unwrap(), 3);
+        
+          // Removes correct ones from cache
+          lru.put("Buster 1", 4);
+          assert_eq!(lru.get("Hello"), None);
+          lru.put("Buster 2", 5);
+          lru.put("Buster 3", 6);
+          assert_eq!(lru.get("Amy"), None);
+          assert_eq!(lru.get("Santiago"), None);
+        
+          // LRU functionality works
+          assert_eq!(lru.get("Buster 1").unwrap(), 4);
+          // Least recently used is now Buster 2, which should have been removed
+          lru.put("Bla Bla", 10);
+          assert_eq!(lru.get("Buster 1").unwrap(), 4);
+          assert_eq!(lru.get("Buster 2"), None);
+        }
+      }
+    }
+  }
+  
+  pub(crate) use lru_tests;
+}
