@@ -34,6 +34,11 @@ pub trait LRU<K: Eq + Hash + Copy, T: Copy> {
       };
     }
 
+    // I have to keep using the "linked_list" and "hash_table"
+    // getters and setters, because self can only have one mutable
+    // reference at a time, and both of those data structures are
+    // mutable. This seems clunkier than assigning to 
+    // a variable, but I don't know if there is any way around it?
     match self.hash_table().get(&key) {
       // Entry exists! Replace it, THEN move it back
       Some(&ptr) => {
