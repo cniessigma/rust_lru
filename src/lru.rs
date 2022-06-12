@@ -102,20 +102,20 @@ mod tests {
     assert_eq!(lru.get(&"Hello"), None);
 
     lru.put("Hello", 1);
-    lru.put("Salud", 2);
-    lru.put("Sentiego", 3);
+    lru.put("Amy", 2);
+    lru.put("Santiago", 3);
 
     assert_eq!(lru.get("Hello").unwrap(), 1);
-    assert_eq!(lru.get("Salud").unwrap(), 2);
-    assert_eq!(lru.get("Sentiego").unwrap(), 3);
+    assert_eq!(lru.get("Amy").unwrap(), 2);
+    assert_eq!(lru.get("Santiago").unwrap(), 3);
 
     // Removes correct ones from cache
     lru.put("Buster 1", 4);
     assert_eq!(lru.get("Hello"), None);
     lru.put("Buster 2", 5);
     lru.put("Buster 3", 6);
-    assert_eq!(lru.get("Salud"), None);
-    assert_eq!(lru.get("Sentiego"), None);
+    assert_eq!(lru.get("Amy"), None);
+    assert_eq!(lru.get("Santiago"), None);
 
     // LRU functionality works
     assert_eq!(lru.get("Buster 1").unwrap(), 4);
