@@ -60,6 +60,10 @@ pub trait LRU<K: Eq + Hash + Copy, T: Copy> {
 
   fn size(&self) -> usize;
   fn capacity(&self) -> usize;
+
+  // I don't know why I need to do all the disambiguation below...
+  // I want to just do Self::List::Pointer, that should only refer to
+  // one type, so I don't know why it's freaking out on me.
   fn hash_table(&mut self) -> &mut HashMap<K, <Self::List as DLL<(K, T)>>::Pointer>;
   fn linked_list(&mut self) -> &mut Self::List;
 }
