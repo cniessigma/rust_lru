@@ -1,3 +1,2 @@
-pub mod veclist;
-pub mod dll;
+pub mod linked_list;
 pub mod lru;

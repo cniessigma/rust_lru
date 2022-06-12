@@ -1,5 +1,5 @@
 use std::mem;
-use crate::dll::DLL;
+use crate::linked_list::DLL;
 
 struct BodyNode<T> {
   elem: T,

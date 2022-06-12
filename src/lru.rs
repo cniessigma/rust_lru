@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 use std::hash::Hash;
-use crate::dll::DLL;
-use crate::veclist;
+use crate::linked_list::DLL;
+use crate::linked_list::veclist;
 
 pub trait LRU<K: Eq + Hash + Copy, T: Copy> {
-  type List: crate::dll::DLL<(K, T)>;
+  type List: DLL<(K, T)>;
 
   fn get(&mut self, key: K) -> Option<T> {
     let table = self.hash_table();

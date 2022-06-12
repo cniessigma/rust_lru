@@ -1,3 +1,5 @@
+pub mod veclist;
+
 pub trait DLL<T: Clone + Copy> {
   type Pointer: Clone + Copy;
 
