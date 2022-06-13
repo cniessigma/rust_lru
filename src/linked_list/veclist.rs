@@ -12,9 +12,8 @@ struct TailNode { prev: NodePointer }
 
 pub struct VectorLinkedList<T> {
   spine: Vec<Option<BodyNode<T>>>,
-  capacity: usize,
   size: usize,
-  next_insert: Option<usize>,
+  next_insert: usize,
   head: HeadNode,
   tail: TailNode,
 }
@@ -27,56 +26,41 @@ pub enum NodePointer {
 }
 
 impl<T> VectorLinkedList<T> {
-  pub fn new(capacity: usize) -> Self {
-    let mut vec = Vec::new();
-    for _ in 0..capacity {
-      vec.push(None)
-    }
-
+  pub fn new() -> Self {
     Self {
-      spine: vec,
+      spine: Vec::new(),
       size: 0,
-      capacity: capacity,
-      next_insert: Some(0),
+      next_insert: 0,
       head: HeadNode { next: NodePointer::Tail },
       tail: TailNode { prev: NodePointer::Head },
     }
   }
 
-  fn find_next(&self) -> Option<usize> {
-    match self.next_insert {
-      Some(i) if i < self.spine.len() - 1 => {
-        match self.spine[i + 1] {
-          None => return Some(i + 1),
-          _ => {}
-        }
-      }
-      _ => {}
-    }
-
+  fn find_next(&self) -> usize {
     for (i, _) in self.spine.iter().enumerate() {
       println!("Looping to find next spot");
       match self.spine[i] {
-        None => { return Some(i) }
+        None => { return i }
         _ => {}
       }
     }
 
-    return None;
+    return self.spine.len();
   }
 
-  fn insert_between(&mut self, elem: T, p: NodePointer, n: NodePointer) -> Option<NodePointer> {
+  fn insert_between(&mut self, elem: T, p: NodePointer, n: NodePointer) -> NodePointer {
     let new_node = BodyNode {
       elem: elem, next: n, prev: p,
     };
 
-    let insert_at = match self.next_insert {
-      None => return None,
-      Some(i) => {
-        self.spine[i] = Some(new_node);
-        i
-      },
-    };
+    // If our insert node is within the bounds of the array
+    let insert_at = self.next_insert;
+
+    if insert_at < self.spine.len() {
+      self.spine[insert_at] = Some(new_node);
+    } else {
+      self.spine.push(Some(new_node));
+    }
 
     match n {
       NodePointer::Head => panic!("Head cannot be referred to by next"),
@@ -102,7 +86,7 @@ impl<T> VectorLinkedList<T> {
 
     self.next_insert = self.find_next();
     self.size += 1;
-    Some(NodePointer::Body(insert_at))
+    NodePointer::Body(insert_at)
   }
 
   fn remove(&mut self, n: NodePointer) -> Option<T> {
@@ -117,7 +101,7 @@ impl<T> VectorLinkedList<T> {
     };
 
     // Free up space in the vector array
-    self.next_insert = Some(vec_index);
+    self.next_insert = vec_index;
     self.size -= 1;
 
     match existing_node.next {
@@ -153,10 +137,6 @@ impl<T: Clone + Copy> DLL<T> for VectorLinkedList<T> {
     self.size
   }
 
-  fn capacity(&self) -> usize {
-    self.capacity
-  }
-
   fn get(&self, n: NodePointer) -> Option<T> {
     match n {
       NodePointer::Body(i) => self.spine[i].as_ref().map(|node| node.elem),
@@ -184,11 +164,7 @@ impl<T: Clone + Copy> DLL<T> for VectorLinkedList<T> {
     }
   }
 
-  fn push_back(& mut self, elem: T) -> Option<NodePointer> {
-    if self.size == self.capacity {
-      return None;
-    }
-
+  fn push_back(& mut self, elem: T) -> NodePointer {
     return self.insert_between(elem, self.tail.prev, NodePointer::Tail);
   }
 
@@ -200,7 +176,7 @@ impl<T: Clone + Copy> DLL<T> for VectorLinkedList<T> {
     self.get(self.head.next)
   }
 
-  fn move_back(&mut self, n: NodePointer) -> Option<NodePointer> {
+  fn move_back(&mut self, n: NodePointer) -> NodePointer {
     self.remove(n).map(|elem| self.push_back(elem)).unwrap()
   }
 }
@@ -210,7 +186,7 @@ mod tests {
   use super::DLL;
   #[test]
   fn it_works() {
-    let mut l = super::VectorLinkedList::new(3);
+    let mut l = super::VectorLinkedList::new();
     assert_eq!(l.size(), 0);
     let first = l.push_back(100);
     assert_eq!(l.size(), 1);
@@ -218,14 +194,11 @@ mod tests {
     assert_eq!(l.size(), 2);
     let third = l.push_back(20);
     assert_eq!(l.size(), 3);
-    let last = l.push_back(1337);
-    assert_eq!(l.size(), 3);
 
     // Can be got, with a pointer
-    assert_eq!(l.get(first.unwrap()), Some(100));
-    assert_eq!(l.get(second.unwrap()), Some(-1));
-    assert_eq!(l.get(third.unwrap()), Some(20));
-    assert_eq!(last, None);
+    assert_eq!(l.get(first), Some(100));
+    assert_eq!(l.get(second), Some(-1));
+    assert_eq!(l.get(third), Some(20));
 
     //Can remove
     assert_eq!(l.peek_front(), Some(100));
@@ -255,7 +228,7 @@ mod tests {
 
     // Can re-arrange
     l.push_back(1);
-    let ptr = l.push_back(3).unwrap();
+    let ptr = l.push_back(3);
     l.push_back(2);
     l.move_back(ptr);
 
@@ -266,9 +239,9 @@ mod tests {
     // Can replace value at a pointer.
     let ptr = l.push_back(10);
     assert_eq!(l.peek_front(), Some(10));
-    l.replace_val(ptr.unwrap(), 40);
+    l.replace_val(ptr, 40);
     assert_eq!(l.peek_front(), Some(40));
-    l.replace_val(ptr.unwrap(), 100);
+    l.replace_val(ptr, 100);
     assert_eq!(l.pop_front(), Some(100));
   }
 }

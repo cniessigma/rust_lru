@@ -28,11 +28,13 @@ pub trait LRU<K: Eq + Hash + Copy, T: Copy> {
   }
 
   fn put(&mut self, key: K, val: T) {
-    let list = self.linked_list();
-    
-    if list.size() == list.capacity() {
-      match list.pop_front() {
-        Some((key, _)) => self.hash_table().remove(&key),
+    if *self.size() == self.capacity() {
+      match self.linked_list().pop_front() {
+        Some((key, _)) => {
+          let size = self.size();
+          *size -= 1;
+          self.hash_table().remove(&key)
+        },
         None => panic!("SIZE MAKES NO SENSE") 
       };
     }
@@ -56,12 +58,14 @@ pub trait LRU<K: Eq + Hash + Copy, T: Copy> {
       // New entry! Push value to back of the list
       None => {
         let new_ptr = self.linked_list().push_back((key, val));
-        self.hash_table().insert(key, new_ptr.unwrap());
+        let size = self.size();
+        *size += 1;
+        self.hash_table().insert(key, new_ptr);
       }
     };
   }
 
-  fn size(&self) -> usize;
+  fn size(& mut self) -> &mut usize;
   fn capacity(&self) -> usize;
 
   // I don't know why I need to do all the disambiguation below...
