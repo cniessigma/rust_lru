@@ -179,69 +179,34 @@ impl<T: Clone + Copy> DLL<T> for VectorLinkedList<T> {
   fn move_back(&mut self, n: NodePointer) -> NodePointer {
     self.remove(n).map(|elem| self.push_back(elem)).unwrap()
   }
-}
 
-#[cfg(test)]
-mod tests {
-  use super::DLL;
-  #[test]
-  fn it_works() {
-    let mut l = super::VectorLinkedList::new();
-    assert_eq!(l.size(), 0);
-    let first = l.push_back(100);
-    assert_eq!(l.size(), 1);
-    let second = l.push_back(-1);
-    assert_eq!(l.size(), 2);
-    let third = l.push_back(20);
-    assert_eq!(l.size(), 3);
+  fn next_node(&self, ptr: NodePointer) -> Option<NodePointer> {
+    match ptr {
+      NodePointer::Body(i) => {
+        let next = self.spine[i].as_ref()?.next;
 
-    // Can be got, with a pointer
-    assert_eq!(l.get(first), Some(100));
-    assert_eq!(l.get(second), Some(-1));
-    assert_eq!(l.get(third), Some(20));
+        match next {
+          NodePointer::Body(_) => Some(next),
+          _ => None
+        }
+      },
+      _ => None
+    }
+  }
 
-    //Can remove
-    assert_eq!(l.peek_front(), Some(100));
-    assert_eq!(l.pop_front(), Some(100));
+  fn prev_node(&self, ptr: NodePointer) -> Option<NodePointer> {
+    match ptr {
+      NodePointer::Body(i) => {
+        let prev = self.spine[i].as_ref()?.prev;
 
-    assert_eq!(l.size(), 2);
-
-    assert_eq!(l.peek_front(), Some(-1));
-    assert_eq!(l.pop_front(), Some(-1));
-
-    assert_eq!(l.size(), 1);
-
-    assert_eq!(l.peek_front(), Some(20));
-    assert_eq!(l.pop_front(), Some(20));
-
-    assert_eq!(l.size(), 0);
-
-    assert_eq!(l.peek_front(), None);
-    assert_eq!(l.pop_front(), None);
-
-    assert_eq!(l.size(), 0);
-
-    l.push_back(10);
-    assert_eq!(l.peek_front(), Some(10));
-    assert_eq!(l.pop_front(), Some(10));
-    assert_eq!(l.pop_front(), None);
-
-    // Can re-arrange
-    l.push_back(1);
-    let ptr = l.push_back(3);
-    l.push_back(2);
-    l.move_back(ptr);
-
-    assert_eq!(l.pop_front(), Some(1));
-    assert_eq!(l.pop_front(), Some(2));
-    assert_eq!(l.pop_front(), Some(3));
-
-    // Can replace value at a pointer.
-    let ptr = l.push_back(10);
-    assert_eq!(l.peek_front(), Some(10));
-    l.replace_val(ptr, 40);
-    assert_eq!(l.peek_front(), Some(40));
-    l.replace_val(ptr, 100);
-    assert_eq!(l.pop_front(), Some(100));
+        match prev {
+          NodePointer::Body(_) => Some(prev),
+          _ => None
+        }
+      },
+      _ => None
+    }
   }
 }
+
+crate::linked_list::macros::dll_tests!(VectorLinkedList);
