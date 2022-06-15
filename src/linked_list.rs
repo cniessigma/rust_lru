@@ -18,11 +18,17 @@ pub trait DLL<T: Clone + Copy> {
 
   fn head(&self) -> Option<Self::Pointer>;
 
-  // fn iter(&self) -> DLLIterator<'_, T, Self>;
+  fn iter(&self) -> DLLIterator<'_, T, Self> {
+    DLLIterator {
+      list: &self,
+      curr: self.head(),
+      wokka: PhantomData,
+    }
+  }
 }
 
 pub struct DLLIterator<'a, T, L>
-where T: 'a + Copy, L: DLL<T>
+where T: 'a + Copy, L: DLL<T> + ?Sized
 {
   list: &'a L,
   curr: Option<L::Pointer>,
@@ -55,7 +61,6 @@ mod macros {
       #[cfg(test)]
       mod test {
         use super::*;
-        use std::marker::PhantomData;
 
         #[test]
         fn test() {
@@ -135,13 +140,7 @@ mod macros {
           assert_eq!(l.get(ptr1_again), Some(&100));
           assert_eq!(l.prev_node(ptr1_again), None);
 
-          let iter = crate::linked_list::DLLIterator {
-            list: &l,
-            curr: l.head(),
-            wokka: PhantomData
-          };
-
-          for (i, n) in Box::new(iter).enumerate() {
+          for (i, n) in l.iter().enumerate() {
             println!("{i} {n}");
             assert_eq!(*n, (i as i32 + 1) * 100);
           }
