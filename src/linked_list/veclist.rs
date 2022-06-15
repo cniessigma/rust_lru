@@ -38,7 +38,6 @@ impl<T> VectorLinkedList<T> {
 
   fn find_next(&self) -> usize {
     for (i, _) in self.spine.iter().enumerate() {
-      println!("Looping to find next spot");
       match self.spine[i] {
         None => { return i }
         _ => {}
@@ -137,9 +136,9 @@ impl<T: Clone + Copy> DLL<T> for VectorLinkedList<T> {
     self.size
   }
 
-  fn get(&self, n: NodePointer) -> Option<T> {
+  fn get(&self, n: NodePointer) -> Option<&T> {
     match n {
-      NodePointer::Body(i) => self.spine[i].as_ref().map(|node| node.elem),
+      NodePointer::Body(i) => self.spine[i].as_ref().map(|node| &node.elem),
       _ => None
     }
   }
@@ -172,7 +171,7 @@ impl<T: Clone + Copy> DLL<T> for VectorLinkedList<T> {
     self.remove(self.head.next)
   }
 
-  fn peek_front(&self) -> Option<T> {
+  fn peek_front(&self) -> Option<&T> {
     self.get(self.head.next)
   }
 
@@ -204,6 +203,14 @@ impl<T: Clone + Copy> DLL<T> for VectorLinkedList<T> {
           _ => None
         }
       },
+      _ => None
+    }
+  }
+
+  fn head(&self) -> Option<NodePointer> {
+    let next = self.head.next;
+    match next {
+      NodePointer::Body(_) => Some(next),
       _ => None
     }
   }

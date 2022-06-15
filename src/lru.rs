@@ -21,8 +21,9 @@ pub trait LRU<K: Eq + Hash + Copy, T: Copy> {
     match list.get(ptr) {
       None => { return None }
       Some((_, elem)) => {
+        let ret = Some(*elem);
         list.move_back(ptr);
-        Some(elem)
+        ret
       }
     }
   }
