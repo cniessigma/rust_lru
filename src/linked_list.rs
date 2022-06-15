@@ -18,7 +18,7 @@ pub trait DLL<T: Clone + Copy> {
 
   fn head(&self) -> Option<Self::Pointer>;
 
-  fn iter(&self) -> DLLIterator<'_, T, Self> {
+  fn iter(&self) -> DLLIterator<T, Self> {
     DLLIterator {
       list: &self,
       curr: self.head(),
@@ -36,7 +36,7 @@ where T: 'a + Copy, L: DLL<T> + ?Sized
 }
 
 impl<'a, T, L> Iterator for DLLIterator<'a, T, L>
-where T: 'a + Copy, L: DLL<T>
+where T: Copy, L: DLL<T>
 {
   type Item = &'a T;
   fn next(&mut self) -> Option<Self::Item> {
@@ -135,7 +135,8 @@ mod macros {
           assert_eq!(l.get(ptr3), Some(&300));
           assert_eq!(l.next_node(ptr3), None);
           l.push_back(400);
-          assert_eq!(l.get(l.next_node(ptr3).unwrap()), Some(&400));
+          let ptr4 = l.next_node(ptr3).unwrap();
+          assert_eq!(l.get(ptr4), Some(&400));
           assert_eq!(l.get(ptr2_again), Some(&200));
           assert_eq!(l.get(ptr1_again), Some(&100));
           assert_eq!(l.prev_node(ptr1_again), None);
