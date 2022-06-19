@@ -123,7 +123,7 @@ mod macros {
           other_lru.put(&a, 12);
           other_lru.put(&11, 100);
           a += 1;
-          assert_eq!(other_lru.get(&a), Some(100));
+          assert_eq!(other_lru.get(&a), Some(&100));
         }
       }
     }
