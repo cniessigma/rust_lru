@@ -1,4 +1,5 @@
 use std::mem;
+use std::fmt;
 use crate::linked_list::DLL;
 
 struct BodyNode<T> {
@@ -167,16 +168,32 @@ impl<T> DLL<T> for VectorLinkedList<T> {
     return self.insert_between(elem, self.tail.prev, NodePointer::Tail);
   }
 
+  fn push_front(& mut self, elem: T) -> NodePointer {
+    return self.insert_between(elem, NodePointer::Head, self.head.next);
+  }
+
   fn pop_front(&mut self) -> Option<T> {
     self.remove(self.head.next)
+  }
+
+  fn pop_back(&mut self) -> Option<T> {
+    self.remove(self.tail.prev)
   }
 
   fn peek_front(&self) -> Option<&T> {
     self.get(self.head.next)
   }
 
+  fn peek_back(&self) -> Option<&T> {
+    self.get(self.tail.prev)
+  }
+
   fn move_back(&mut self, n: NodePointer) -> NodePointer {
     self.remove(n).map(|elem| self.push_back(elem)).unwrap()
+  }
+
+  fn move_front(&mut self, n: NodePointer) -> NodePointer {
+    self.remove(n).map(|elem| self.push_front(elem)).unwrap()
   }
 
   fn next_node(&self, ptr: NodePointer) -> Option<NodePointer> {
@@ -213,6 +230,33 @@ impl<T> DLL<T> for VectorLinkedList<T> {
       NodePointer::Body(_) => Some(next),
       _ => None
     }
+  }
+
+  fn tail(&self) -> Option<NodePointer> {
+    let next = self.tail.prev;
+    match next {
+      NodePointer::Body(_) => Some(next),
+      _ => None
+    }
+  }
+}
+
+impl<T: fmt::Display> fmt::Display for VectorLinkedList<T> {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    let mut vec: Vec<String> = Vec::new();
+    let mut node = self.head();
+
+
+    while let Some(ptr) = node {
+      if let NodePointer::Body(index) = ptr {
+        let elem = self.get(ptr).unwrap();
+        vec.push(format!("[{index} - Elem: {elem}]"));
+      }
+
+      node = self.next_node(ptr);
+    }
+  
+    write!(f, "[{}]", vec.join(" -> "))
   }
 }
 

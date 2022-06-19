@@ -1,22 +1,32 @@
 pub mod veclist;
 use std::marker::PhantomData;
+use std::fmt;
 
 pub trait DLL<T> {
   type Pointer: Copy;
 
+  // How many are in the list?
   fn size(&self) -> usize;
-  fn get(&'_ self, ptr: Self::Pointer) -> Option<&T>;
-  fn replace_val(&mut self, ptr: Self::Pointer, elem: T) -> Option<Self::Pointer>;
+
   fn peek_front(&self) -> Option<&T>;
+  fn peek_back(&self) -> Option<&T>;
   fn pop_front(&mut self) -> Option<T>;
-
-  fn push_back(&mut self, elem: T) -> Self::Pointer;
-  fn move_back(&mut self, ptr: Self::Pointer) -> Self::Pointer;
-
-  fn next_node(&self, prt: Self::Pointer) -> Option<Self::Pointer>;
-  fn prev_node(&self, prt: Self::Pointer) -> Option<Self::Pointer>;
+  fn pop_back(&mut self) -> Option<T>;
 
   fn head(&self) -> Option<Self::Pointer>;
+  fn tail(&self) -> Option<Self::Pointer>;
+
+  fn get(&self, ptr: Self::Pointer) -> Option<&T>;
+  fn replace_val(&mut self, ptr: Self::Pointer, elem: T) -> Option<Self::Pointer>;
+
+  fn push_back(&mut self, elem: T) -> Self::Pointer;
+  fn push_front(&mut self, elem: T) -> Self::Pointer;
+  fn move_back(&mut self, ptr: Self::Pointer) -> Self::Pointer;
+  fn move_front(&mut self, ptr: Self::Pointer) -> Self::Pointer;
+
+  // Traversers, so that iter can use it.
+  fn next_node(&self, prt: Self::Pointer) -> Option<Self::Pointer>;
+  fn prev_node(&self, prt: Self::Pointer) -> Option<Self::Pointer>;
 
   fn iter(&self) -> DLLIterator<T, Self> {
     DLLIterator {
@@ -110,17 +120,23 @@ mod macros {
           l.push_back(2);
           l.move_back(ptr);
 
+          assert_eq!(l.get(l.head().unwrap()), l.peek_front());
+          assert_eq!(l.get(l.tail().unwrap()), l.peek_back());
+
           assert_eq!(l.pop_front(), Some(1));
+          assert_eq!(l.pop_back(), Some(3));
           assert_eq!(l.pop_front(), Some(2));
-          assert_eq!(l.pop_front(), Some(3));
 
           // Can replace value at a pointer.
           let ptr = l.push_back(10);
           assert_eq!(l.peek_front(), Some(&10));
+          assert_eq!(l.peek_back(), Some(&10));
           l.replace_val(ptr, 40);
           assert_eq!(l.peek_front(), Some(&40));
+          assert_eq!(l.peek_back(), Some(&40));
           l.replace_val(ptr, 100);
           assert_eq!(l.pop_front(), Some(100));
+          assert_eq!(l.pop_back(), None);
 
           // Can grab the next Pointer and get the next entry
           let ptr1 = l.push_back(100);
@@ -141,6 +157,16 @@ mod macros {
           assert_eq!(l.get(ptr1_again), Some(&100));
           assert_eq!(l.prev_node(ptr1_again), None);
 
+          l.move_back(ptr1);
+          l.move_front(ptr4);
+
+          assert_eq!(l.get(l.head().unwrap()), Some(&400));
+          assert_eq!(l.get(l.tail().unwrap()), Some(&100));
+
+          l.move_front(ptr1);
+          l.move_back(ptr4);
+
+          // Iterating works for &'s
           for (i, n) in l.iter().enumerate() {
             println!("{i} {n}");
             assert_eq!(*n, (i as i32 + 1) * 100);
