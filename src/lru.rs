@@ -27,7 +27,7 @@ where K: Eq + Hash + Copy {
     None
   }
 
-  fn put<'a>(&'a mut self, key: &'a K, val: T) {
+  fn put(&mut self, key: K, val: T) {
     if *self.size() == self.capacity() {
       match self.linked_list().pop_front() {
         Some((key, _)) => {
@@ -51,16 +51,16 @@ where K: Eq + Hash + Copy {
     match self.hash_table().get(&key) {
       // Entry exists! Replace it, THEN move it back
       Some(&ptr) => {
-        self.linked_list().replace_val(ptr, (*key, val));
+        self.linked_list().replace_val(ptr, (key, val));
         self.linked_list().move_back(ptr);
       },
 
       // New entry! Push value to back of the list
       None => {
-        let new_ptr = self.linked_list().push_back((*key, val));
+        let new_ptr = self.linked_list().push_back((key, val));
         let size = self.size();
         *size += 1;
-        self.hash_table().insert(*key, new_ptr);
+        self.hash_table().insert(key, new_ptr);
       }
     };
   }
@@ -118,12 +118,13 @@ mod macros {
           other_lru = $type::new(3);
 
           let mut a : i32 = 10;
-          other_lru.put(&a, 10);
-          other_lru.put(&a, 11);
-          other_lru.put(&a, 12);
-          other_lru.put(&11, 100);
+          other_lru.put(a, 10);
+          other_lru.put(a, 11);
+          other_lru.put(a, 12);
+          other_lru.put(11, 100);
           a += 1;
           assert_eq!(other_lru.get(&a), Some(&100));
+          assert_eq!(other_lru.get(&10), Some(&12));
         }
       }
     }
