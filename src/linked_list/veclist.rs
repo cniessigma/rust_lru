@@ -248,15 +248,24 @@ impl<T: fmt::Display> fmt::Display for VectorLinkedList<T> {
 
 
     while let Some(ptr) = node {
+      node = self.next_node(ptr);
+
       if let NodePointer::Body(index) = ptr {
         let elem = self.get(ptr).unwrap();
-        vec.push(format!("[{index} - Elem: {elem}]"));
-      }
+        let prev = match self.prev_node(ptr) {
+          Some(NodePointer::Body(p_i)) => format!("<- {p_i}"),
+          _ => String::from("HEAD")
+        };
+        let next = match node {
+          Some(NodePointer::Body(n_i)) => format!("{n_i} ->"),
+          _ => String::from("TAIL")
+        };
 
-      node = self.next_node(ptr);
+        vec.push(format!("[{prev} ({index} - {elem}) {next}]"));
+      }
     }
   
-    write!(f, "[{}]", vec.join(" -> "))
+    write!(f, "{}", vec.join(""))
   }
 }
 
