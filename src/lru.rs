@@ -6,7 +6,7 @@ pub mod veclru;
 
 pub trait LRU<K, T>
 where K: Eq + Hash + Copy {
-  type List: DLL<(K, T)> + 'static;
+  type List: DLL<(K, T)>;
 
   fn new(capacity: usize) -> Self;
 
