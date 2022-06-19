@@ -129,7 +129,7 @@ impl<T> VectorLinkedList<T> {
   }
 }
 
-impl<T: Clone + Copy> DLL<T> for VectorLinkedList<T> {
+impl<T> DLL<T> for VectorLinkedList<T> {
   type Pointer = NodePointer;
 
   fn size(&self) -> usize {

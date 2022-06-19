@@ -1,11 +1,11 @@
 pub mod veclist;
 use std::marker::PhantomData;
 
-pub trait DLL<T: Clone + Copy> {
-  type Pointer: Clone + Copy;
+pub trait DLL<T> {
+  type Pointer: Copy;
 
   fn size(&self) -> usize;
-  fn get(&self, ptr: Self::Pointer) -> Option<&T>;
+  fn get(&'_ self, ptr: Self::Pointer) -> Option<&T>;
   fn replace_val(&mut self, ptr: Self::Pointer, elem: T) -> Option<Self::Pointer>;
   fn peek_front(&self) -> Option<&T>;
   fn pop_front(&mut self) -> Option<T>;
@@ -28,7 +28,7 @@ pub trait DLL<T: Clone + Copy> {
 }
 
 pub struct DLLIterator<'a, T, L>
-where T: 'a + Copy, L: DLL<T> + ?Sized
+where T: 'a, L: DLL<T> + ?Sized
 {
   list: &'a L,
   curr: Option<L::Pointer>,
@@ -36,7 +36,7 @@ where T: 'a + Copy, L: DLL<T> + ?Sized
 }
 
 impl<'a, T, L> Iterator for DLLIterator<'a, T, L>
-where T: Copy, L: DLL<T>
+where L: DLL<T>
 {
   type Item = &'a T;
   fn next(&mut self) -> Option<Self::Item> {

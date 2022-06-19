@@ -4,12 +4,13 @@ use crate::linked_list::DLL;
 
 pub mod veclru;
 
-pub trait LRU<K: Eq + Hash + Copy, T: Copy> {
-  type List: DLL<(K, T)>;
+pub trait LRU<K, T>
+where K: Eq + Hash + Copy + 'static {
+  type List: DLL<(K, T)> + 'static;
 
   fn new(capacity: usize) -> Self;
 
-  fn get(&mut self, key: K) -> Option<T> {
+  fn get(&mut self, key: K) -> Option<&T> {
     let table = self.hash_table();
     let ptr = match table.get(&key) {
       Some(p) => *p,
@@ -17,15 +18,13 @@ pub trait LRU<K: Eq + Hash + Copy, T: Copy> {
     };
 
     let list = self.linked_list();
+    list.move_back(ptr);
 
-    match list.get(ptr) {
-      None => { return None }
-      Some((_, elem)) => {
-        let ret = Some(*elem);
-        list.move_back(ptr);
-        ret
-      }
+    if let Some(tup) = list.get(ptr) {
+      return Some(&tup.1)
     }
+
+    None
   }
 
   fn put(&mut self, key: K, val: T) {
@@ -95,9 +94,9 @@ mod macros {
           lru.put("Amy", 2);
           lru.put("Santiago", 3);
         
-          assert_eq!(lru.get("Hello").unwrap(), 1);
-          assert_eq!(lru.get("Amy").unwrap(), 2);
-          assert_eq!(lru.get("Santiago").unwrap(), 3);
+          assert_eq!(lru.get("Hello").unwrap(), &1);
+          assert_eq!(lru.get("Amy").unwrap(), &2);
+          assert_eq!(lru.get("Santiago").unwrap(), &3);
         
           // Removes correct ones from cache
           lru.put("Buster 1", 4);
@@ -108,10 +107,10 @@ mod macros {
           assert_eq!(lru.get("Santiago"), None);
         
           // LRU functionality works
-          assert_eq!(lru.get("Buster 1").unwrap(), 4);
+          assert_eq!(lru.get("Buster 1").unwrap(), &4);
           // Least recently used is now Buster 2, which should have been removed
           lru.put("Bla Bla", 10);
-          assert_eq!(lru.get("Buster 1").unwrap(), 4);
+          assert_eq!(lru.get("Buster 1").unwrap(), &4);
           assert_eq!(lru.get("Buster 2"), None);
         }
       }

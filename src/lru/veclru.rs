@@ -1,18 +1,17 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 use crate::lru::LRU;
-use crate::linked_list::DLL;
 use crate::linked_list::veclist;
 
 
-pub struct VecLRU<K: Eq + Hash + Copy, T: Copy> {
+pub struct VecLRU<K: Eq + Hash + 'static, T: 'static> {
   list: veclist::VectorLinkedList<(K, T)>,
   hash_map: HashMap<K, veclist::NodePointer>,
   size: usize,
   capacity: usize,
 }
 
-impl<K: Eq + Hash + Copy, T: Copy> LRU<K, T> for VecLRU<K, T> {
+impl<K: Eq + Hash + Copy, T> LRU<K, T> for VecLRU<K, T> {
   type List = veclist::VectorLinkedList<(K, T)>;
 
   fn new(capacity: usize) -> Self {
