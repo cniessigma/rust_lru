@@ -5,12 +5,12 @@ use crate::linked_list::DLL;
 pub mod veclru;
 
 pub trait LRU<K, T>
-where K: Eq + Hash + Copy + 'static {
+where K: Eq + Hash + Copy {
   type List: DLL<(K, T)> + 'static;
 
   fn new(capacity: usize) -> Self;
 
-  fn get(&mut self, key: K) -> Option<&T> {
+  fn get<'a>(&'a mut self, key: &'a K) -> Option<&'_ T> {
     let table = self.hash_table();
     let ptr = match table.get(&key) {
       Some(p) => *p,
@@ -27,7 +27,7 @@ where K: Eq + Hash + Copy + 'static {
     None
   }
 
-  fn put(&mut self, key: K, val: T) {
+  fn put<'a>(&'a mut self, key: &'a K, val: T) {
     if *self.size() == self.capacity() {
       match self.linked_list().pop_front() {
         Some((key, _)) => {
@@ -51,16 +51,16 @@ where K: Eq + Hash + Copy + 'static {
     match self.hash_table().get(&key) {
       // Entry exists! Replace it, THEN move it back
       Some(&ptr) => {
-        self.linked_list().replace_val(ptr, (key, val));
+        self.linked_list().replace_val(ptr, (*key, val));
         self.linked_list().move_back(ptr);
       },
 
       // New entry! Push value to back of the list
       None => {
-        let new_ptr = self.linked_list().push_back((key, val));
+        let new_ptr = self.linked_list().push_back((*key, val));
         let size = self.size();
         *size += 1;
-        self.hash_table().insert(key, new_ptr);
+        self.hash_table().insert(*key, new_ptr);
       }
     };
   }
@@ -90,28 +90,40 @@ mod macros {
         
           assert_eq!(lru.get(&"Hello"), None);
         
-          lru.put("Hello", 1);
-          lru.put("Amy", 2);
-          lru.put("Santiago", 3);
+          lru.put(&"Hello", 1);
+          lru.put(&"Amy", 2);
+          lru.put(&"Santiago", 3);
         
-          assert_eq!(lru.get("Hello").unwrap(), &1);
-          assert_eq!(lru.get("Amy").unwrap(), &2);
-          assert_eq!(lru.get("Santiago").unwrap(), &3);
+          assert_eq!(lru.get(&"Hello").unwrap(), &1);
+          assert_eq!(lru.get(&"Amy").unwrap(), &2);
+          assert_eq!(lru.get(&"Santiago").unwrap(), &3);
         
           // Removes correct ones from cache
-          lru.put("Buster 1", 4);
-          assert_eq!(lru.get("Hello"), None);
-          lru.put("Buster 2", 5);
-          lru.put("Buster 3", 6);
-          assert_eq!(lru.get("Amy"), None);
-          assert_eq!(lru.get("Santiago"), None);
+          lru.put(&"Buster 1", 4);
+          assert_eq!(lru.get(&"Hello"), None);
+          lru.put(&"Buster 2", 5);
+          lru.put(&"Buster 3", 6);
+          assert_eq!(lru.get(&"Amy"), None);
+          assert_eq!(lru.get(&"Santiago"), None);
         
           // LRU functionality works
-          assert_eq!(lru.get("Buster 1").unwrap(), &4);
+          assert_eq!(lru.get(&"Buster 1").unwrap(), &4);
           // Least recently used is now Buster 2, which should have been removed
-          lru.put("Bla Bla", 10);
-          assert_eq!(lru.get("Buster 1").unwrap(), &4);
-          assert_eq!(lru.get("Buster 2"), None);
+          lru.put(&"Bla Bla", 10);
+          assert_eq!(lru.get(&"Buster 1").unwrap(), &4);
+          assert_eq!(lru.get(&"Buster 2"), None);
+
+
+          let mut other_lru: $type<i32, i32>;
+          other_lru = $type::new(3);
+
+          let mut a : i32 = 10;
+          other_lru.put(&a, 10);
+          other_lru.put(&a, 11);
+          other_lru.put(&a, 12);
+          other_lru.put(&11, 100);
+          a += 1;
+          assert_eq!(other_lru.get(&a), Some(100));
         }
       }
     }
