@@ -1,6 +1,8 @@
 use std::mem;
 use std::fmt;
 use crate::linked_list::DLL;
+use std::marker::PhantomData;
+
 
 struct BodyNode<T> {
   elem: T,
@@ -266,6 +268,17 @@ impl<T: fmt::Display> fmt::Display for VectorLinkedList<T> {
     }
   
     write!(f, "{}", vec.join(""))
+  }
+}
+
+impl<T> IntoIterator for VectorLinkedList<T> {
+  type Item = T;
+  type IntoIter = super::DLLIntoIter<T, Self>;
+  fn into_iter(self) -> Self::IntoIter {
+    super::DLLIntoIter {
+      _wokka: PhantomData,
+      list: self,
+    }
   }
 }
 

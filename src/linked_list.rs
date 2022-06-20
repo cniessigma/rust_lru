@@ -37,6 +37,18 @@ pub trait DLL<T> {
   }
 }
 
+pub struct DLLIntoIter<T, L: DLL<T>> {
+  list: L,
+  _wokka: PhantomData<T>,
+}
+
+impl<T, L: DLL<T>> Iterator for DLLIntoIter<T, L> {
+  type Item = T;
+  fn next(&mut self) -> Option<Self::Item> {
+    self.list.pop_front()
+  }
+}
+
 pub struct DLLIterator<'a, T, L>
 where T: 'a, L: DLL<T> + ?Sized
 {
@@ -63,6 +75,33 @@ where L: DLL<T>
     self.list.get(curr_ptr.unwrap())
   }
 }
+
+// pub struct DLLMutIterator<'a, T, L>
+// where T: 'a, L: DLL<T> + ?Sized
+// {
+//   list: &'a mut L,
+//   curr: Option<L::Pointer>,
+//   wokka: PhantomData<T>,
+// }
+
+// impl<'a, T, L> Iterator for DLLMutIterator<'a, T, L>
+// where L: DLL<T>
+// {
+//   type Item = &'a mut T;
+//   fn next(&mut self) -> Option<Self::Item> {
+//     let curr_ptr = self.curr;
+
+//     if let None = curr_ptr {
+//       return None;
+//     }
+
+//     let next_node = self.list.next_node(self.curr.unwrap());
+//     self.curr = next_node;
+    
+
+//     self.list.get_mut(curr_ptr.unwrap())
+//   }
+// }
 
 #[macro_use]
 mod macros {
