@@ -146,6 +146,13 @@ impl<T> DLL<T> for VectorLinkedList<T> {
     }
   }
 
+  fn get_mut(&mut self, n: NodePointer) -> Option<&mut T> {
+    match n {
+      NodePointer::Body(i) => self.spine[i].as_mut().map(|node| &mut node.elem),
+      _ => None
+    }
+  }
+
   fn replace_val(&mut self, n: NodePointer, elem: T) -> Option<NodePointer> {
     match n {
       NodePointer::Body(i) => {

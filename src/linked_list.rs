@@ -1,6 +1,5 @@
 pub mod veclist;
 use std::marker::PhantomData;
-use std::fmt;
 
 pub trait DLL<T> {
   type Pointer: Copy;
@@ -17,6 +16,7 @@ pub trait DLL<T> {
   fn tail(&self) -> Option<Self::Pointer>;
 
   fn get(&self, ptr: Self::Pointer) -> Option<&T>;
+  fn get_mut(&mut self, ptr: Self::Pointer) -> Option<&mut T>;
   fn replace_val(&mut self, ptr: Self::Pointer, elem: T) -> Option<Self::Pointer>;
 
   fn push_back(&mut self, elem: T) -> Self::Pointer;
@@ -33,6 +33,14 @@ pub trait DLL<T> {
       list: &self,
       curr: self.head(),
       wokka: PhantomData,
+    }
+  }
+
+  fn iter_mut(&mut self) -> DLLMutIterator<T, Self> {
+    DLLMutIterator {
+      curr: self.head(),
+      list: self,
+      _wokka: PhantomData,
     }
   }
 }
@@ -76,32 +84,41 @@ where L: DLL<T>
   }
 }
 
-// pub struct DLLMutIterator<'a, T, L>
-// where T: 'a, L: DLL<T> + ?Sized
-// {
-//   list: &'a mut L,
-//   curr: Option<L::Pointer>,
-//   wokka: PhantomData<T>,
-// }
+pub struct DLLMutIterator<'a, T, L>
+where T: 'a, L: DLL<T> + ?Sized
+{
+  list: &'a mut L,
+  curr: Option<L::Pointer>,
+  _wokka: PhantomData<&'a T>,
+}
 
-// impl<'a, T, L> Iterator for DLLMutIterator<'a, T, L>
-// where L: DLL<T>
-// {
-//   type Item = &'a mut T;
-//   fn next(&mut self) -> Option<Self::Item> {
-//     let curr_ptr = self.curr;
+impl<'a, T, L> Iterator for DLLMutIterator<'a, T, L>
+where L: DLL<T>
+{
+  type Item = &'a mut T;
+  fn next(&mut self) -> Option<Self::Item> {
+    let curr_ptr = self.curr;
 
-//     if let None = curr_ptr {
-//       return None;
-//     }
+    if let None = curr_ptr {
+      return None;
+    }
 
-//     let next_node = self.list.next_node(self.curr.unwrap());
-//     self.curr = next_node;
+    let next_node = self.list.next_node(self.curr.unwrap());
+    self.curr = next_node;
+
+    // The problem is the mutable reference is moved to this
+    // function once we grab it, and we can't return it here
+    // because we want to be able to call next again. Rust
+    // is deadly afraid of you returning the same &mut twice.
+    let output = self.list.get_mut(curr_ptr.unwrap());
     
-
-//     self.list.get_mut(curr_ptr.unwrap())
-//   }
-// }
+    unsafe {
+      // But since I know they are different ever time, let's ignore it
+      // and de-reference.
+      output.map(|n| &mut *(n as *mut T))
+    }
+  }
+}
 
 #[macro_use]
 mod macros {
@@ -110,6 +127,24 @@ mod macros {
       #[cfg(test)]
       mod test {
         use super::*;
+
+        #[test]
+        fn mut_test() {
+          let mut l = $type::new();
+          l.push_back(10);
+          l.push_back(20);
+          l.push_back(30);
+
+          let iter = l.iter_mut();
+
+          for i in iter {
+            *i = 100 + *i;
+          }
+
+          for (i, n) in l.into_iter().enumerate() {
+            assert_eq!(n, 100 + (i + 1) * 10)
+          }
+        }
 
         #[test]
         fn test() {
@@ -207,7 +242,6 @@ mod macros {
 
           // Iterating works for &'s
           for (i, n) in l.iter().enumerate() {
-            println!("{i} {n}");
             assert_eq!(*n, (i as i32 + 1) * 100);
           }
         }
