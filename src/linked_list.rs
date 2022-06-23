@@ -1,4 +1,5 @@
 pub mod veclist;
+pub mod cellist;
 use std::marker::PhantomData;
 
 pub trait DLL<T> {
@@ -113,7 +114,7 @@ where L: DLL<T>
     let output = self.list.get_mut(curr_ptr.unwrap());
     
     unsafe {
-      // But since I know they are different ever time, let's ignore it
+      // But since I know they are different every time, let's ignore it
       // and de-reference.
       output.map(|n| &mut *(n as *mut T))
     }
