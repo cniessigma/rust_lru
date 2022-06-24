@@ -13,14 +13,14 @@ where K: Eq + Hash + Copy {
   fn get<'a>(&'a mut self, key: &'a K) -> Option<&'_ T> {
     let table = self.hash_table();
     let ptr = match table.get(&key) {
-      Some(p) => *p,
+      Some(p) => p.clone(),
       None => { return None }
     };
 
     let list = self.linked_list();
-    list.move_back(ptr);
+    list.move_back(&ptr);
 
-    if let Some(tup) = list.get(ptr) {
+    if let Some(tup) = list.get(&ptr) {
       return Some(&tup.1)
     }
 
@@ -39,6 +39,8 @@ where K: Eq + Hash + Copy {
       };
     }
 
+    let existing = self.hash_table().get(&key);
+
     // I have to keep using the "linked_list" and "hash_table"
     // getters, because self can only have one mutable
     // reference at a time, and both of those data structures are
@@ -48,11 +50,12 @@ where K: Eq + Hash + Copy {
     // does not work.
     // If I had access to the underlying struct then that would work
     // too but... I want to keep this logic in the trait.
-    match self.hash_table().get(&key) {
+    match existing {
       // Entry exists! Replace it, THEN move it back
-      Some(&ptr) => {
-        self.linked_list().replace_val(ptr, (key, val));
-        self.linked_list().move_back(ptr);
+      Some(ptr) => {
+        let new_ptr = ptr.clone();
+        self.linked_list().replace_val(&new_ptr, (key, val));
+        self.linked_list().move_back(&new_ptr);
       },
 
       // New entry! Push value to back of the list

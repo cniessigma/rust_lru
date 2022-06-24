@@ -50,9 +50,9 @@ impl<T> VectorLinkedList<T> {
     return self.spine.len();
   }
 
-  fn insert_between(&mut self, elem: T, p: NodePointer, n: NodePointer) -> NodePointer {
+  fn insert_between(&mut self, elem: T, p: &NodePointer, n: &NodePointer) -> NodePointer {
     let new_node = BodyNode {
-      elem: elem, next: n, prev: p,
+      elem: elem, next: n.clone(), prev: p.clone(),
     };
 
     // If our insert node is within the bounds of the array
@@ -64,7 +64,7 @@ impl<T> VectorLinkedList<T> {
       self.spine.push(Some(new_node));
     }
 
-    match n {
+    match *n {
       NodePointer::Head => panic!("Head cannot be referred to by next"),
       NodePointer::Tail => self.tail.prev = NodePointer::Body(insert_at),
       NodePointer::Body(next) => {
@@ -75,7 +75,7 @@ impl<T> VectorLinkedList<T> {
       }
     }
 
-    match p {
+    match *p {
       NodePointer::Tail => panic!("Tail cannot be referred to by prev"),
       NodePointer::Head => self.head.next = NodePointer::Body(insert_at),
       NodePointer::Body(prev) => {
@@ -91,13 +91,13 @@ impl<T> VectorLinkedList<T> {
     NodePointer::Body(insert_at)
   }
 
-  fn remove(&mut self, n: NodePointer) -> Option<T> {
-    let vec_index = match n {
+  fn remove(&mut self, n: &NodePointer) -> Option<T> {
+    let vec_index = match *n {
       NodePointer::Body(i) => i,
       _ => return None
     };
 
-    let existing_node = match mem::replace(& mut self.spine[vec_index], None) {
+    let existing_node = match mem::replace(&mut self.spine[vec_index], None) {
       None => return None,
       Some(node) => node,
     };
@@ -139,22 +139,22 @@ impl<T> DLL<T> for VectorLinkedList<T> {
     self.size
   }
 
-  fn get(&self, n: NodePointer) -> Option<&T> {
-    match n {
+  fn get(&self, n: &NodePointer) -> Option<&T> {
+    match *n {
       NodePointer::Body(i) => self.spine[i].as_ref().map(|node| &node.elem),
       _ => None
     }
   }
 
-  fn get_mut(&mut self, n: NodePointer) -> Option<&mut T> {
-    match n {
+  fn get_mut(&mut self, n: &NodePointer) -> Option<&mut T> {
+    match *n {
       NodePointer::Body(i) => self.spine[i].as_mut().map(|node| &mut node.elem),
       _ => None
     }
   }
 
-  fn replace_val(&mut self, n: NodePointer, elem: T) -> Option<NodePointer> {
-    match n {
+  fn replace_val(&mut self, n: &NodePointer, elem: T) -> Option<NodePointer> {
+    match *n {
       NodePointer::Body(i) => {
         match &self.spine[i] {
           Some(curr_node) => {
@@ -164,7 +164,7 @@ impl<T> DLL<T> for VectorLinkedList<T> {
                 ..*curr_node
               }
             );
-            Some(n)
+            Some(*n)
           },
           None => None,
         }
@@ -173,40 +173,42 @@ impl<T> DLL<T> for VectorLinkedList<T> {
     }
   }
 
-  fn push_back(& mut self, elem: T) -> NodePointer {
-    return self.insert_between(elem, self.tail.prev, NodePointer::Tail);
+  fn push_back(&mut self, elem: T) -> NodePointer {
+    return self.insert_between(elem, &self.tail.prev.clone(), &NodePointer::Tail);
   }
 
   fn push_front(& mut self, elem: T) -> NodePointer {
-    return self.insert_between(elem, NodePointer::Head, self.head.next);
+    return self.insert_between(elem, &NodePointer::Head, &self.head.next.clone());
   }
 
   fn pop_front(&mut self) -> Option<T> {
-    self.remove(self.head.next)
+    self.remove(&self.head.next.clone())
   }
 
   fn pop_back(&mut self) -> Option<T> {
-    self.remove(self.tail.prev)
+    self.remove(&self.tail.prev.clone())
   }
 
   fn peek_front(&self) -> Option<&T> {
-    self.get(self.head.next)
+    self.get(&self.head.next)
   }
 
   fn peek_back(&self) -> Option<&T> {
-    self.get(self.tail.prev)
+    self.get(&self.tail.prev)
   }
 
-  fn move_back(&mut self, n: NodePointer) -> NodePointer {
+  fn move_back(&mut self, n: &NodePointer) -> NodePointer {
     self.remove(n).map(|elem| self.push_back(elem)).unwrap()
   }
 
-  fn move_front(&mut self, n: NodePointer) -> NodePointer {
-    self.remove(n).map(|elem| self.push_front(elem)).unwrap()
+  fn move_front(&mut self, n: &NodePointer) -> NodePointer {
+    self.remove(n).map(|elem| {
+      self.push_front(elem)
+    }).unwrap()
   }
 
-  fn next_node(&self, ptr: NodePointer) -> Option<NodePointer> {
-    match ptr {
+  fn next_node(&self, ptr: &NodePointer) -> Option<NodePointer> {
+    match *ptr {
       NodePointer::Body(i) => {
         let next = self.spine[i].as_ref()?.next;
 
@@ -219,8 +221,8 @@ impl<T> DLL<T> for VectorLinkedList<T> {
     }
   }
 
-  fn prev_node(&self, ptr: NodePointer) -> Option<NodePointer> {
-    match ptr {
+  fn prev_node(&self, ptr: &NodePointer) -> Option<NodePointer> {
+    match *ptr {
       NodePointer::Body(i) => {
         let prev = self.spine[i].as_ref()?.prev;
 
@@ -257,11 +259,11 @@ impl<T: fmt::Display> fmt::Display for VectorLinkedList<T> {
 
 
     while let Some(ptr) = node {
-      node = self.next_node(ptr);
+      node = self.next_node(&ptr);
 
       if let NodePointer::Body(index) = ptr {
-        let elem = self.get(ptr).unwrap();
-        let prev = match self.prev_node(ptr) {
+        let elem = self.get(&ptr).unwrap();
+        let prev = match self.prev_node(&ptr) {
           Some(NodePointer::Body(p_i)) => format!("<- {p_i}"),
           _ => String::from("HEAD")
         };
