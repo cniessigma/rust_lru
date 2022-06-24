@@ -6,13 +6,13 @@ use std::fmt;
 use std::rc::{Rc, Weak};
 
 #[derive(Clone)]
-pub struct BodyNode<T: Clone + Debug + Display> {
+pub struct BodyNode<T: Clone> {
   elem: T,
   next: Option<StrongNodePointer<T>>,
   prev: Option<WeakNodePointer<T>>,
 }
 
-impl<T: Clone + Debug + Display> Debug for BodyNode<T> {
+impl<T: Clone + Debug> Debug for BodyNode<T> {
   fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
     f.debug_struct("BodyNode")
       .field("elem", &self.elem)
@@ -24,13 +24,13 @@ impl<T: Clone + Debug + Display> Debug for BodyNode<T> {
 type StrongNodePointer<T> = Rc<RefCell<BodyNode<T>>>;
 type WeakNodePointer<T> = Weak<RefCell<BodyNode<T>>>;
 
-pub struct CellLinkedList<T: Clone + Debug + Display> {
+pub struct CellLinkedList<T: Clone> {
   head: Option<StrongNodePointer<T>>,
   tail: Option<StrongNodePointer<T>>,
   size: usize,
 }
 
-impl<T: Clone + Debug + Display> CellLinkedList<T> {
+impl<T: Clone> CellLinkedList<T> {
   fn new() -> Self {
     CellLinkedList {
       head: None,
@@ -120,7 +120,7 @@ impl<T: Clone + Debug + Display> CellLinkedList<T> {
   }
 }
 
-impl<T: Clone + Debug + Display> DLL<T> for CellLinkedList<T> {
+impl<T: Clone> DLL<T> for CellLinkedList<T> {
   type Pointer = StrongNodePointer<T>;
 
   fn size(&self) -> usize {
@@ -212,7 +212,7 @@ impl<T: Clone + Debug + Display> DLL<T> for CellLinkedList<T> {
 }
 
 
-impl<T: Clone + Debug + Display> IntoIterator for CellLinkedList<T> {
+impl<T: Clone> IntoIterator for CellLinkedList<T> {
   type Item = T;
   type IntoIter = super::DLLIntoIter<T, Self>;
   fn into_iter(self) -> Self::IntoIter {
@@ -223,7 +223,7 @@ impl<T: Clone + Debug + Display> IntoIterator for CellLinkedList<T> {
   }
 }
 
-impl<T: Display + Clone + Debug + Display> Display for CellLinkedList<T> {
+impl<T: Display + Clone> Display for CellLinkedList<T> {
   fn fmt(&self, f: &mut Formatter) -> fmt::Result {
     let mut vec: Vec<String> = Vec::with_capacity(self.size());
     let mut node = self.head();
