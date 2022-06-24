@@ -52,47 +52,53 @@ impl<T: Clone> CellLinkedList<T> {
       }
     );
 
-    let initial_ptr = Rc::new(new_node);
+    let new_node_ptr = Rc::new(new_node);
 
     self.size += 1;
     match n {
       // Insert at head.
       None => {
-        let next = match &self.head {
+        let next_node_ptr = match &self.head {
           Some(ptr) => { 
-            ptr.borrow_mut().prev = Some(Rc::downgrade(&initial_ptr));
+            ptr.borrow_mut().prev = Some(Rc::downgrade(&new_node_ptr));
             Some(Rc::clone(ptr))
           },
           None => None
         };
 
-        self.head = Some(Rc::clone(&initial_ptr));
-        initial_ptr.borrow_mut().next = next;
+        self.head = Some(Rc::clone(&new_node_ptr));
+        new_node_ptr.borrow_mut().next = next_node_ptr;
 
         if self.tail.is_none() {
-          self.tail = Some(Rc::clone(&initial_ptr));
+          self.tail = Some(Rc::clone(&new_node_ptr));
         }
       },
 
       Some(ptr) => {
-        let next_node = &ptr.borrow().next.as_ref().map(|ptr| Rc::clone(ptr));
-        ptr.borrow_mut().next = Some(initial_ptr.clone());
+        let new_next_node = &ptr.borrow().next.as_ref().map(|ptr| Rc::clone(ptr));
+        ptr.borrow_mut().next = Some(new_node_ptr.clone());
 
-        match next_node {
-          None => self.tail = Some(Rc::clone(&initial_ptr)),
+        match new_next_node {
+          // If there is no next node, then the new node becomes the tail
+          None => self.tail = Some(Rc::clone(&new_node_ptr)),
+
+          // If there is a next node, set that node's prev to the new node
           Some(n_ptr) => {
-            n_ptr.borrow_mut().prev = Some(Rc::downgrade(&initial_ptr));
+            n_ptr.borrow_mut().prev = Some(Rc::downgrade(&new_node_ptr));
           }
         };
 
 
-        initial_ptr.borrow_mut().next = next_node.clone();
-        initial_ptr.borrow_mut().prev = n.map(|t| Rc::downgrade(&t));
+        // Set the new node's next to the cursor node's next 
+        new_node_ptr.borrow_mut().next = new_next_node.clone();
+
+        // Set the new node's prev to a weak pointer to the cursor node
+        new_node_ptr.borrow_mut().prev = n.map(|t| Rc::downgrade(&t));
       },
     }
 
     
-    initial_ptr
+    new_node_ptr
   }
 
   fn remove(&mut self, ptr: &StrongNodePointer<T>) -> T {
@@ -116,7 +122,7 @@ impl<T: Clone> CellLinkedList<T> {
 
     ptr.borrow_mut().next = None;
     ptr.borrow_mut().prev = None;
-    ptr.borrow().clone().elem
+    ptr.borrow().elem.clone()
   }
 }
 
@@ -223,7 +229,7 @@ impl<T: Clone> IntoIterator for CellLinkedList<T> {
   }
 }
 
-impl<T: Display + Clone> Display for CellLinkedList<T> {
+impl<T: Display + Clone + Debug> Display for CellLinkedList<T> {
   fn fmt(&self, f: &mut Formatter) -> fmt::Result {
     let mut vec: Vec<String> = Vec::with_capacity(self.size());
     let mut node = self.head();
@@ -231,10 +237,16 @@ impl<T: Display + Clone> Display for CellLinkedList<T> {
     while let Some(n_ptr) = node.clone() {
       node = self.next_node(&n_ptr);
 
-      vec.push(format!("{}", self.get(&n_ptr).unwrap()))
+
+      let curr_val = self.get(&n_ptr).unwrap();
+      let last_val = n_ptr.borrow().prev.clone().map(|t| { 
+        let strong_last = t.upgrade().unwrap();
+        self.get(&strong_last).unwrap()
+      });
+      vec.push(format!("[{:?} <--- {}]", last_val, curr_val));
     }
 
-    write!(f, "[{}]", vec.join(" <---> "))
+    write!(f, "{}", vec.join(" <---> "))
   }
 }
 
