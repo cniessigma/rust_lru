@@ -197,14 +197,16 @@ impl<T> DLL<T> for VectorLinkedList<T> {
     self.get(&self.tail.prev)
   }
 
-  fn move_back(&mut self, n: &NodePointer) -> NodePointer {
-    self.remove(n).map(|elem| self.push_back(elem)).unwrap()
+  fn move_back(&mut self, n: &mut NodePointer) {
+    let mut new_ptr = self.remove(n).map(|elem| self.push_back(elem)).unwrap();
+    mem::swap(n, &mut new_ptr);
   }
 
-  fn move_front(&mut self, n: &NodePointer) -> NodePointer {
-    self.remove(n).map(|elem| {
+  fn move_front(&mut self, n: &mut NodePointer) {
+    let mut new_ptr = self.remove(n).map(|elem| {
       self.push_front(elem)
-    }).unwrap()
+    }).unwrap();
+    mem::swap(n, &mut new_ptr);
   }
 
   fn next_node(&self, ptr: &NodePointer) -> Option<NodePointer> {

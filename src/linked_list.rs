@@ -22,8 +22,8 @@ pub trait DLL<T> {
 
   fn push_back(&mut self, elem: T) -> Self::Pointer;
   fn push_front(&mut self, elem: T) -> Self::Pointer;
-  fn move_back(&mut self, ptr: &Self::Pointer) -> Self::Pointer;
-  fn move_front(&mut self, ptr: &Self::Pointer) -> Self::Pointer;
+  fn move_back(&mut self, ptr: &mut Self::Pointer);
+  fn move_front(&mut self, ptr: &mut Self::Pointer);
 
   // Traversers, so that iter can use it.
   fn next_node(&self, ptr: &Self::Pointer) -> Option<Self::Pointer>;
@@ -190,9 +190,9 @@ mod macros {
         
           // Can re-arrange
           l.push_back(1);
-          let ptr = l.push_back(3);
+          let mut ptr = l.push_back(3);
           l.push_back(2);
-          l.move_back(&ptr);
+          l.move_back(&mut ptr);
         
         
           assert_eq!(l.get(&l.head().unwrap()), l.peek_front());
@@ -232,13 +232,13 @@ mod macros {
           assert_eq!(l.get(&ptr1_again), Some(&100));
           assert_eq!(l.prev_node(&ptr1_again).is_none(), true);
         
-          ptr1 = l.move_back(&ptr1);
-          ptr4 = l.move_front(&ptr4);
+          l.move_back(&mut ptr1);
+          l.move_front(&mut ptr4);
         
           assert_eq!(l.get(&l.head().unwrap()), Some(&400));
           assert_eq!(l.get(&l.tail().unwrap()), Some(&100));
-          l.move_front(&ptr1);
-          l.move_back(&ptr4);
+          l.move_front(&mut ptr1);
+          l.move_back(&mut ptr4);
 
           // Iterating works for &'s
           for (i, n) in l.iter().enumerate() {

@@ -24,12 +24,12 @@ where K: Eq + Hash + Copy {
 
   fn get<'a>(&'a mut self, key: &'a K) -> Option<&'_ T> {
     let holder = self.key_holder();
-    let ptr = match holder.hash.get(&key) {
+    let mut ptr = match holder.hash.get_mut(&key) {
       Some(p) => p,
       None => { return None }
     };
 
-    holder.list.move_back(ptr);
+    holder.list.move_back(&mut ptr);
 
     if let Some(tup) = holder.list.get(ptr) {
       return Some(&tup.1)
@@ -50,7 +50,7 @@ where K: Eq + Hash + Copy {
       };
     }
 
-    let existing = holder.hash.get(&key);
+    let existing = holder.hash.get_mut(&key);
 
     // I have to keep using the "linked_list" and "hash_table"
     // getters, because self can only have one mutable
@@ -63,9 +63,9 @@ where K: Eq + Hash + Copy {
     // too but... I want to keep this logic in the trait.
     match existing {
       // Entry exists! Replace it, THEN move it back
-      Some(ptr) => {
+      Some(mut ptr) => {
         holder.list.replace_val(&ptr, (key, val));
-        holder.list.move_back(&ptr);
+        holder.list.move_back(&mut ptr);
       },
 
       // New entry! Push value to back of the list
