@@ -153,7 +153,7 @@ impl<T> DLL<T> for VectorLinkedList<T> {
     }
   }
 
-  fn replace_val(&mut self, n: &NodePointer, elem: T) -> Option<NodePointer> {
+  fn replace_val(&mut self, n: &NodePointer, elem: T) {
     match *n {
       NodePointer::Body(i) => {
         match &self.spine[i] {
@@ -170,7 +170,7 @@ impl<T> DLL<T> for VectorLinkedList<T> {
         }
       },
       _ => None
-    }
+    };
   }
 
   fn push_back(&mut self, elem: T) -> NodePointer {

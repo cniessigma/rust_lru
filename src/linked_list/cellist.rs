@@ -20,7 +20,7 @@ impl<T: Debug> Debug for BodyNode<T> {
   }
 }
 
-// Only owned forwards
+// TODO: Make Pointers NOT Cloneable
 type StrongNodePointer<T> = Option<Rc<RefCell<BodyNode<T>>>>;
 type WeakNodePointer<T> = Option<Weak<RefCell<BodyNode<T>>>>;
 
@@ -114,6 +114,8 @@ impl<T> CellLinkedList<T> {
       Some(i) => i,
     };
 
+    println!("BEFORE REMOVAL {}", Rc::strong_count(ptr));
+
     let prior_ptr = ptr.borrow().prev.as_ref().map(|ptr| Weak::clone(ptr));
     let next_ptr = ptr.borrow().next.as_ref().map(|ptr| Rc::clone(ptr));
 
@@ -121,22 +123,21 @@ impl<T> CellLinkedList<T> {
       p_ptr.upgrade().unwrap().borrow_mut().next = next_ptr.as_ref().map(|p| Rc::clone(p));
     } else {
       let old_head = mem::replace(h, next_ptr.as_ref().map(|p| Rc::clone(p)));
-      drop(old_head);
     }
 
     if let Some(n_ptr) = &next_ptr {
       n_ptr.borrow_mut().prev = prior_ptr;
     } else {
       let old_tail = mem::replace(t, prior_ptr.map(|ptr| ptr.upgrade().unwrap()));
-      drop(old_tail);
     }
 
+    println!("AFTER REASSOCIATION {}", Rc::strong_count(ptr));
 
     ptr.borrow_mut().next = None;
     ptr.borrow_mut().prev = None;
     let curr_ptr = mem::replace(p, None).unwrap();
 
-    println!("{}", Rc::strong_count(&curr_ptr));
+    println!("AFTER NULLIFYING POINTERS {}", Rc::strong_count(&curr_ptr));
     match Rc::try_unwrap(curr_ptr) {
       Ok(ref_cell) => ref_cell.into_inner().elem,
       _ => panic!("PANIC"),
@@ -173,7 +174,7 @@ impl<T> DLL<T> for CellLinkedList<T> {
     }
   }
 
-  fn replace_val(&mut self, ptr: &Self::Pointer, elem: T) -> Option<Self::Pointer> {
+  fn replace_val(&mut self, ptr: &Self::Pointer, elem: T) {
     let n = match ptr {
       None => panic!("DO NOT DO THIS"),
       Some(i) => i,
@@ -181,9 +182,6 @@ impl<T> DLL<T> for CellLinkedList<T> {
 
     if let Some(f) = self.get_mut(ptr) {
       *f = elem;
-      Some(Some(Rc::clone(&n)))
-    } else {
-      None
     }
   }
 
@@ -198,11 +196,20 @@ impl<T> DLL<T> for CellLinkedList<T> {
 
   fn pop_front(&mut self) -> Option<T> {
     let head = &mut self.head;
+    if let None = head {
+      return None;
+    }
+    if let Some(h) = head {
+      println!("BEFORE POP {}", Rc::strong_count(h));
+    }
     Some(Self::remove(head, &mut head.clone(), &mut self.tail, &mut self.size))
   }
 
   fn pop_back(&mut self) -> Option<T> {
     let tail = &mut self.tail;
+    if let None = tail {
+      return None;
+    }
     Some(Self::remove(tail, &mut self.head, &mut tail.clone(), &mut self.size))
   }
 
@@ -224,21 +231,26 @@ impl<T> DLL<T> for CellLinkedList<T> {
 
   fn move_back(&mut self, n: &mut Self::Pointer) {
     let elem = Self::remove(n, &mut self.head, &mut self.tail, &mut self.size);
-    let mut new_ptr = self.push_back(elem);
-    mem::swap(n, &mut new_ptr);
+    let new_ptr = self.push_back(elem);
+    *n = new_ptr;
   }
 
   fn move_front(&mut self, n: &mut Self::Pointer) {
     let elem = Self::remove(n, &mut self.head, &mut self.tail, &mut self.size);
-    let mut new_ptr = self.push_front(elem);
-    mem::swap(n, &mut new_ptr);
+    let new_ptr = self.push_front(elem);
+    *n = new_ptr;
   }
 
   fn next_node(&self, ptr: &Self::Pointer) -> Option<Self::Pointer> {
     if let Some(p) = ptr {
-      Some(p.borrow().next.as_ref().map(|ptr| Rc::clone(ptr)))
+      let next = &p.borrow().next;
+      if let None = next {
+        return None;
+      }
+
+      Some(next.as_ref().map(|ptr| Rc::clone(ptr)))
     } else {
-      panic!("NOOOOO!!")
+      panic!("Should not happen")
     }
   }
 
@@ -254,11 +266,11 @@ impl<T> DLL<T> for CellLinkedList<T> {
   }
 
   fn head(&self) -> Option<Self::Pointer> {
-    Some(self.head.as_ref().map(|ptr| Rc::clone(ptr)))
+    self.head.as_ref().map(|ptr| Some(Rc::clone(ptr)))
   }
 
   fn tail(&self) -> Option<Self::Pointer> {
-    Some(self.tail.as_ref().map(|ptr| Rc::clone(ptr)))
+    self.tail.as_ref().map(|ptr| Some(Rc::clone(ptr)))
   }
 }
 
@@ -280,9 +292,9 @@ impl<T: Display + Debug> Display for CellLinkedList<T> {
     let mut node = self.head();
 
     while let Some(n_ptr) = node.clone() {
+      println!("CURR NODE {:?}", node);
       node = self.next_node(&n_ptr);
-
-
+      println!("NEXT NODE {:?}", node);
       let curr_val = self.get(&n_ptr).unwrap();
       let last_val = n_ptr.unwrap().borrow().prev.clone().map(|t| { 
         let strong_last = t.upgrade().unwrap();

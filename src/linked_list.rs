@@ -18,7 +18,7 @@ pub trait DLL<T> {
 
   fn get(&self, ptr: &Self::Pointer) -> Option<&T>;
   fn get_mut(&mut self, ptr: &Self::Pointer) -> Option<&mut T>;
-  fn replace_val(&mut self, ptr: &Self::Pointer, elem: T) -> Option<Self::Pointer>;
+  fn replace_val(&mut self, ptr: &Self::Pointer, elem: T);
 
   fn push_back(&mut self, elem: T) -> Self::Pointer;
   fn push_front(&mut self, elem: T) -> Self::Pointer;
@@ -131,9 +131,13 @@ mod macros {
         #[test]
         fn mut_test() {
           let mut l = $type::new();
+          println!("{l}");
+
           l.push_back(10);
           l.push_back(20);
           l.push_back(30);
+
+          println!("{l}");
 
           let iter = l.iter_mut();
 
@@ -157,6 +161,7 @@ mod macros {
           let third = l.push_back(20);
           assert_eq!(l.size(), 3);
         
+          println!("{l}");
           // Can be got, with a pointer
           assert_eq!(l.get(&first), Some(&100));
           assert_eq!(l.get(&second), Some(&-1));
