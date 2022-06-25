@@ -3,7 +3,7 @@ pub mod cellist;
 use std::marker::PhantomData;
 
 pub trait DLL<T> {
-  type Pointer: Clone;
+  type Pointer;
 
   // How many are in the list?
   fn size(&self) -> usize;
@@ -71,17 +71,16 @@ where L: DLL<T>
 {
   type Item = &'a T;
   fn next(&mut self) -> Option<Self::Item> {
-    let curr_ptr = self.curr.clone();
+    let curr_ptr = self.curr.as_ref();
 
     if let None = curr_ptr {
       return None;
     }
 
-    let next_node = self.list.next_node(&self.curr.clone().unwrap());
+    let next_node = self.list.next_node(curr_ptr.unwrap());
+    let item = self.list.get(curr_ptr.as_ref().clone().unwrap());
     self.curr = next_node;
-    
-
-    self.list.get(curr_ptr.as_ref().clone().unwrap())
+    item
   }
 }
 
@@ -98,20 +97,20 @@ where L: DLL<T>
 {
   type Item = &'a mut T;
   fn next(&mut self) -> Option<Self::Item> {
-    let curr_ptr = self.curr.clone();
+    let curr_ptr = self.curr.as_ref();
 
-    if let None = curr_ptr {
+    if let None = &curr_ptr {
       return None;
     }
 
-    let next_node = self.list.next_node(&self.curr.clone().unwrap());
-    self.curr = next_node;
+    let next_node = self.list.next_node(curr_ptr.unwrap());
 
     // The problem is the mutable reference is moved to this
     // function once we grab it, and we can't return it here
     // because we want to be able to call next again. Rust
     // is deadly afraid of you returning the same &mut twice.
     let output = self.list.get_mut(&curr_ptr.unwrap());
+    self.curr = next_node;
     
     unsafe {
       // But since I know they are different every time, let's ignore it

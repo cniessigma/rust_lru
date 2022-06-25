@@ -1,8 +1,18 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 use crate::linked_list::DLL;
+use std::marker::PhantomData;
 
 pub mod veclru;
+
+
+pub struct KeyHolder<K: Eq + Hash + Copy, T, L: DLL<(K, T)>> {
+  list: L,
+  hash: HashMap<K, L::Pointer>,
+  size: usize,
+  capacity: usize,
+  _marker: PhantomData<T>,
+}
 
 pub trait LRU<K, T>
 where K: Eq + Hash + Copy {
@@ -10,17 +20,18 @@ where K: Eq + Hash + Copy {
 
   fn new(capacity: usize) -> Self;
 
+  fn key_holder(&mut self) -> &mut KeyHolder<K, T, Self::List>;
+
   fn get<'a>(&'a mut self, key: &'a K) -> Option<&'_ T> {
-    let table = self.hash_table();
-    let ptr = match table.get(&key) {
-      Some(p) => p.clone(),
+    let holder = self.key_holder();
+    let ptr = match holder.hash.get(&key) {
+      Some(p) => p,
       None => { return None }
     };
 
-    let list = self.linked_list();
-    list.move_back(&ptr);
+    holder.list.move_back(ptr);
 
-    if let Some(tup) = list.get(&ptr) {
+    if let Some(tup) = holder.list.get(ptr) {
       return Some(&tup.1)
     }
 
@@ -28,18 +39,18 @@ where K: Eq + Hash + Copy {
   }
 
   fn put(&mut self, key: K, val: T) {
-    if *self.size() == self.capacity() {
-      match self.linked_list().pop_front() {
+    let holder = self.key_holder();
+    if holder.size == holder.capacity {
+      match holder.list.pop_front() {
         Some((key, _)) => {
-          let size = self.size();
-          *size -= 1;
-          self.hash_table().remove(&key)
+          holder.size -= 1;
+          holder.hash.remove(&key)
         },
         None => panic!("SIZE MAKES NO SENSE") 
       };
     }
 
-    let existing = self.hash_table().get(&key);
+    let existing = holder.hash.get(&key);
 
     // I have to keep using the "linked_list" and "hash_table"
     // getters, because self can only have one mutable
@@ -53,29 +64,18 @@ where K: Eq + Hash + Copy {
     match existing {
       // Entry exists! Replace it, THEN move it back
       Some(ptr) => {
-        let new_ptr = ptr.clone();
-        self.linked_list().replace_val(&new_ptr, (key, val));
-        self.linked_list().move_back(&new_ptr);
+        holder.list.replace_val(&ptr, (key, val));
+        holder.list.move_back(&ptr);
       },
 
       // New entry! Push value to back of the list
       None => {
-        let new_ptr = self.linked_list().push_back((key, val));
-        let size = self.size();
-        *size += 1;
-        self.hash_table().insert(key, new_ptr);
+        let new_ptr = holder.list.push_back((key, val));
+        holder.size += 1;
+        holder.hash.insert(key, new_ptr);
       }
     };
   }
-
-  fn size(& mut self) -> &mut usize;
-  fn capacity(&self) -> usize;
-
-  // I don't know why I need to do all the disambiguation below...
-  // I want to just do Self::List::Pointer, that should only refer to
-  // one type, so I don't know why it's freaking out on me.
-  fn hash_table(&mut self) -> &mut HashMap<K, <Self::List as DLL<(K, T)>>::Pointer>;
-  fn linked_list(&mut self) -> &mut Self::List;
 }
 
 #[macro_use]

@@ -1,14 +1,12 @@
 use std::collections::HashMap;
 use std::hash::Hash;
-use crate::lru::LRU;
+use crate::lru::{LRU, KeyHolder};
 use crate::linked_list::veclist;
+use std::marker::PhantomData;
 
 
-pub struct VecLRU<K: Eq + Hash + 'static, T: 'static> {
-  list: veclist::VectorLinkedList<(K, T)>,
-  hash_map: HashMap<K, veclist::NodePointer>,
-  size: usize,
-  capacity: usize,
+pub struct VecLRU<K: Eq + Hash + Copy, T> {
+  key_holder: KeyHolder<K, T, veclist::VectorLinkedList<(K, T)>>,
 }
 
 impl<K: Eq + Hash + Copy, T> LRU<K, T> for VecLRU<K, T> {
@@ -16,27 +14,18 @@ impl<K: Eq + Hash + Copy, T> LRU<K, T> for VecLRU<K, T> {
 
   fn new(capacity: usize) -> Self {
     VecLRU {
-      list: veclist::VectorLinkedList::new(),
-      hash_map: HashMap::new(),
-      size: 0,
-      capacity: capacity,
+      key_holder: KeyHolder {
+        hash: HashMap::new(),
+        list: veclist::VectorLinkedList::new(),
+        _marker: PhantomData,
+        size: 0,
+        capacity: capacity,
+      },
     }
   }
 
-  fn size(&mut self) -> &mut usize {
-    &mut self.size
-  }
-
-  fn capacity(&self) -> usize {
-    self.capacity
-  }
-
-  fn hash_table(&mut self) -> &mut HashMap<K, veclist::NodePointer> {
-    &mut self.hash_map
-  }
-
-  fn linked_list(&mut self) -> &mut veclist::VectorLinkedList<(K, T)> {
-    &mut self.list
+  fn key_holder(&mut self) -> &mut KeyHolder<K, T, veclist::VectorLinkedList<(K, T)>> {
+    &mut self.key_holder
   }
 }
 
