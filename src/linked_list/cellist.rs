@@ -30,6 +30,15 @@ pub struct CellLinkedList<T> {
   size: usize,
 }
 
+fn convert_weak<T>(weak_ptr: &WeakNodePointer<T>) -> StrongNodePointer<T> {
+  let result = weak_ptr.clone().map(|t| t.upgrade());
+  if let Some(None) = result {
+    return None;
+  }
+
+  result.map(|t| t.unwrap())
+}
+
 impl<T> CellLinkedList<T> {
   fn new() -> Self {
     CellLinkedList {
@@ -43,7 +52,7 @@ impl<T> CellLinkedList<T> {
     &mut self,
     elem: T,
     n: &StrongNodePointer<T>,
-  ) -> StrongNodePointer<T> {
+  ) -> WeakNodePointer<T> {
     let new_node = RefCell::new(
       BodyNode {
         elem: elem,
@@ -98,7 +107,7 @@ impl<T> CellLinkedList<T> {
     }
 
     
-    Some(new_node_ptr)
+    Some(Rc::downgrade(&new_node_ptr))
   }
 
   fn remove(
@@ -122,13 +131,13 @@ impl<T> CellLinkedList<T> {
     if let Some(p_ptr) = &prior_ptr {
       p_ptr.upgrade().unwrap().borrow_mut().next = next_ptr.as_ref().map(|p| Rc::clone(p));
     } else {
-      let old_head = mem::replace(h, next_ptr.as_ref().map(|p| Rc::clone(p)));
+      *h = next_ptr.as_ref().map(|p| Rc::clone(p));
     }
 
     if let Some(n_ptr) = &next_ptr {
       n_ptr.borrow_mut().prev = prior_ptr;
     } else {
-      let old_tail = mem::replace(t, prior_ptr.map(|ptr| ptr.upgrade().unwrap()));
+      *t = prior_ptr.map(|ptr| ptr.upgrade().unwrap());
     }
 
     println!("AFTER REASSOCIATION {}", Rc::strong_count(ptr));
@@ -146,15 +155,17 @@ impl<T> CellLinkedList<T> {
 }
 
 impl<T> DLL<T> for CellLinkedList<T> {
-  type Pointer = StrongNodePointer<T>;
+  type Pointer = WeakNodePointer<T>;
 
   fn size(&self) -> usize {
     self.size
   }
 
-  fn get(&self, ptr: &Self::Pointer) -> Option<&T> {
+  fn get(&self, weak_ptr: &Self::Pointer) -> Option<&T> {
+    let ptr = convert_weak(weak_ptr);
+
     match ptr {
-      None => panic!("Why are you like this?"),
+      None => None,
       Some(n) => {
         unsafe {
           Some(&(*n.as_ptr()).elem)
@@ -163,9 +174,11 @@ impl<T> DLL<T> for CellLinkedList<T> {
     }
   }
 
-  fn get_mut(&mut self, ptr: &Self::Pointer) -> Option<&mut T> {
+  fn get_mut(&mut self, weak_ptr: &Self::Pointer) -> Option<&mut T> {
+    let ptr = convert_weak(weak_ptr);
+
     match ptr {
-      None => panic!("Why are you like this?"),
+      None => None,
       Some(n) => {
         unsafe {
           Some(&mut (*n.as_ptr()).elem)
@@ -202,7 +215,7 @@ impl<T> DLL<T> for CellLinkedList<T> {
     if let Some(h) = head {
       println!("BEFORE POP {}", Rc::strong_count(h));
     }
-    Some(Self::remove(head, &mut head.clone(), &mut self.tail, &mut self.size))
+    Some(Self::remove(&mut head.clone(), head, &mut self.tail, &mut self.size))
   }
 
   fn pop_back(&mut self) -> Option<T> {
@@ -210,7 +223,7 @@ impl<T> DLL<T> for CellLinkedList<T> {
     if let None = tail {
       return None;
     }
-    Some(Self::remove(tail, &mut self.head, &mut tail.clone(), &mut self.size))
+    Some(Self::remove(&mut tail.clone(), &mut self.head, tail, &mut self.size))
   }
 
   fn peek_front(&self) -> Option<&T> {
@@ -218,7 +231,7 @@ impl<T> DLL<T> for CellLinkedList<T> {
       return None;
     }
 
-    self.get(&self.head)
+    self.get(&self.head.as_ref().map(|t| Rc::downgrade(t)))
   }
 
   fn peek_back(&self) -> Option<&T> {
@@ -226,39 +239,51 @@ impl<T> DLL<T> for CellLinkedList<T> {
       return None;
     }
 
-    self.get(&self.tail)
+    self.get(&self.tail.as_ref().map(|t| Rc::downgrade(t)))
   }
 
   fn move_back(&mut self, n: &mut Self::Pointer) {
-    let elem = Self::remove(n, &mut self.head, &mut self.tail, &mut self.size);
+    let elem = Self::remove(
+      &mut convert_weak(n),
+      &mut self.head,
+      &mut self.tail,
+      &mut self.size,
+    );
     let new_ptr = self.push_back(elem);
     *n = new_ptr;
   }
 
   fn move_front(&mut self, n: &mut Self::Pointer) {
-    let elem = Self::remove(n, &mut self.head, &mut self.tail, &mut self.size);
+    let elem = Self::remove(
+      &mut convert_weak(n),
+      &mut self.head,
+      &mut self.tail,
+      &mut self.size
+    );
     let new_ptr = self.push_front(elem);
     *n = new_ptr;
   }
 
-  fn next_node(&self, ptr: &Self::Pointer) -> Option<Self::Pointer> {
+  fn next_node(&self, weak_ptr: &Self::Pointer) -> Option<Self::Pointer> {
+    let ptr = convert_weak(weak_ptr);
     if let Some(p) = ptr {
       let next = &p.borrow().next;
       if let None = next {
         return None;
       }
 
-      Some(next.as_ref().map(|ptr| Rc::clone(ptr)))
+      Some(next.as_ref().map(|ptr| Rc::downgrade(ptr)))
     } else {
       panic!("Should not happen")
     }
   }
 
-  fn prev_node(&self, ptr: &Self::Pointer) -> Option<Self::Pointer> {
+  fn prev_node(&self, weak_ptr: &Self::Pointer) -> Option<Self::Pointer> {
+    let ptr = convert_weak(weak_ptr);
     if let Some(p) = ptr {
       match &p.borrow().prev {
         None => None,
-        Some(p_ptr) => Some(Some(p_ptr.upgrade()).unwrap()),
+        Some(p_ptr) => Some(Some(Weak::clone(p_ptr))),
       }
     } else {
       panic!("NOOOOO!!")
@@ -266,11 +291,11 @@ impl<T> DLL<T> for CellLinkedList<T> {
   }
 
   fn head(&self) -> Option<Self::Pointer> {
-    self.head.as_ref().map(|ptr| Some(Rc::clone(ptr)))
+    self.head.as_ref().map(|ptr| Some(Rc::downgrade(ptr)))
   }
 
   fn tail(&self) -> Option<Self::Pointer> {
-    self.tail.as_ref().map(|ptr| Some(Rc::clone(ptr)))
+    self.tail.as_ref().map(|ptr| Some(Rc::downgrade(ptr)))
   }
 }
 
@@ -292,13 +317,10 @@ impl<T: Display + Debug> Display for CellLinkedList<T> {
     let mut node = self.head();
 
     while let Some(n_ptr) = node.clone() {
-      println!("CURR NODE {:?}", node);
       node = self.next_node(&n_ptr);
-      println!("NEXT NODE {:?}", node);
       let curr_val = self.get(&n_ptr).unwrap();
-      let last_val = n_ptr.unwrap().borrow().prev.clone().map(|t| { 
-        let strong_last = t.upgrade().unwrap();
-        self.get(&Some(strong_last)).unwrap()
+      let last_val = convert_weak(&n_ptr).unwrap().borrow().prev.clone().map(|t| { 
+        self.get(&Some(t)).unwrap()
       });
       vec.push(format!("[{:?} <--- {}]", last_val, curr_val));
     }

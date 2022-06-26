@@ -160,8 +160,6 @@ mod macros {
           assert_eq!(l.size(), 2);
           let third = l.push_back(20);
           assert_eq!(l.size(), 3);
-        
-          println!("{l}");
           // Can be got, with a pointer
           assert_eq!(l.get(&first), Some(&100));
           assert_eq!(l.get(&second), Some(&-1));
@@ -198,8 +196,7 @@ mod macros {
           let mut ptr = l.push_back(3);
           l.push_back(2);
           l.move_back(&mut ptr);
-        
-        
+
           assert_eq!(l.get(&l.head().unwrap()), l.peek_front());
           assert_eq!(l.get(&l.tail().unwrap()), l.peek_back());
         
