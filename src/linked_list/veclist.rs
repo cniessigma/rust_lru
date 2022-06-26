@@ -29,16 +29,6 @@ pub enum NodePointer {
 }
 
 impl<T> VectorLinkedList<T> {
-  pub fn new() -> Self {
-    Self {
-      spine: Vec::new(),
-      size: 0,
-      next_insert: 0,
-      head: HeadNode { next: NodePointer::Tail },
-      tail: TailNode { prev: NodePointer::Head },
-    }
-  }
-
   fn find_next(&self) -> usize {
     for (i, _) in self.spine.iter().enumerate() {
       match self.spine[i] {
@@ -134,6 +124,16 @@ impl<T> VectorLinkedList<T> {
 
 impl<T> DLL<T> for VectorLinkedList<T> {
   type Pointer = NodePointer;
+
+  fn new() -> Self {
+    Self {
+      spine: Vec::new(),
+      size: 0,
+      next_insert: 0,
+      head: HeadNode { next: NodePointer::Tail },
+      tail: TailNode { prev: NodePointer::Head },
+    }
+  }
 
   fn size(&self) -> usize {
     self.size

@@ -6,6 +6,7 @@ pub trait DLL<T> {
   type Pointer;
 
   // How many are in the list?
+  fn new() -> Self;
   fn size(&self) -> usize;
 
   fn peek_front(&self) -> Option<&T>;

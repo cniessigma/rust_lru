@@ -39,14 +39,6 @@ fn convert_weak<T>(weak_ptr: &WeakNodePointer<T>) -> StrongNodePointer<T> {
 }
 
 impl<T> CellLinkedList<T> {
-  pub fn new() -> Self {
-    CellLinkedList {
-      head: None,
-      tail: None,
-      size: 0,
-    }
-  }
-
   fn insert_after(
     &mut self,
     elem: T,
@@ -122,8 +114,6 @@ impl<T> CellLinkedList<T> {
       Some(i) => i,
     };
 
-    println!("BEFORE REMOVAL {}", Rc::strong_count(ptr));
-
     let prior_ptr = ptr.borrow().prev.as_ref().map(|ptr| Weak::clone(ptr));
     let next_ptr = ptr.borrow().next.as_ref().map(|ptr| Rc::clone(ptr));
 
@@ -139,13 +129,10 @@ impl<T> CellLinkedList<T> {
       *t = prior_ptr.map(|ptr| ptr.upgrade().unwrap());
     }
 
-    println!("AFTER REASSOCIATION {}", Rc::strong_count(ptr));
-
     ptr.borrow_mut().next = None;
     ptr.borrow_mut().prev = None;
     let curr_ptr = mem::replace(p, None).unwrap();
 
-    println!("AFTER NULLIFYING POINTERS {}", Rc::strong_count(&curr_ptr));
     match Rc::try_unwrap(curr_ptr) {
       Ok(ref_cell) => ref_cell.into_inner().elem,
       _ => panic!("PANIC"),
@@ -155,6 +142,14 @@ impl<T> CellLinkedList<T> {
 
 impl<T> DLL<T> for CellLinkedList<T> {
   type Pointer = WeakNodePointer<T>;
+
+  fn new() -> Self {
+    CellLinkedList {
+      head: None,
+      tail: None,
+      size: 0,
+    }
+  }
 
   fn size(&self) -> usize {
     self.size
@@ -211,9 +206,7 @@ impl<T> DLL<T> for CellLinkedList<T> {
     if let None = head {
       return None;
     }
-    if let Some(h) = head {
-      println!("BEFORE POP {}", Rc::strong_count(h));
-    }
+
     Some(Self::remove(&mut head.clone(), head, &mut self.tail, &mut self.size))
   }
 

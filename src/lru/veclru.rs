@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 use crate::lru::{LRU, KeyHolder};
-use crate::linked_list::veclist;
+use crate::linked_list::{DLL, veclist};
 use std::marker::PhantomData;
 
 
