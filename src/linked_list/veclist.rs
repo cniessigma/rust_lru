@@ -16,9 +16,9 @@ struct TailNode { prev: NodePointer }
 pub struct VectorLinkedList<T> {
   spine: Vec<Option<BodyNode<T>>>,
   size: usize,
-  next_insert: usize,
   head: HeadNode,
   tail: TailNode,
+  free_list: Vec<usize>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -29,29 +29,21 @@ pub enum NodePointer {
 }
 
 impl<T> VectorLinkedList<T> {
-  fn find_next(&self) -> usize {
-    for (i, _) in self.spine.iter().enumerate() {
-      match self.spine[i] {
-        None => { return i }
-        _ => {}
-      }
-    }
-
-    return self.spine.len();
-  }
-
   fn insert_between(&mut self, elem: T, p: &NodePointer, n: &NodePointer) -> NodePointer {
     let new_node = BodyNode {
       elem: elem, next: n.clone(), prev: p.clone(),
     };
 
     // If our insert node is within the bounds of the array
-    let insert_at = self.next_insert;
+    let free_space = self.free_list.pop();
+    let insert_at;
 
-    if insert_at < self.spine.len() {
-      self.spine[insert_at] = Some(new_node);
+    if let Some(i) = free_space {
+      self.spine[i] = Some(new_node);
+      insert_at = i;
     } else {
       self.spine.push(Some(new_node));
+      insert_at = self.spine.len() - 1;
     }
 
     match *n {
@@ -76,7 +68,6 @@ impl<T> VectorLinkedList<T> {
       }
     }
 
-    self.next_insert = self.find_next();
     self.size += 1;
     NodePointer::Body(insert_at)
   }
@@ -93,7 +84,7 @@ impl<T> VectorLinkedList<T> {
     };
 
     // Free up space in the vector array
-    self.next_insert = vec_index;
+    self.free_list.push(vec_index);
     self.size -= 1;
 
     match existing_node.next {
@@ -129,9 +120,9 @@ impl<T> DLL<T> for VectorLinkedList<T> {
     Self {
       spine: Vec::new(),
       size: 0,
-      next_insert: 0,
       head: HeadNode { next: NodePointer::Tail },
       tail: TailNode { prev: NodePointer::Head },
+      free_list: Vec::new(),
     }
   }
 
