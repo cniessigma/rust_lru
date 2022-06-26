@@ -20,7 +20,6 @@ impl<T: Debug> Debug for BodyNode<T> {
   }
 }
 
-// TODO: Make Pointers NOT Cloneable
 type StrongNodePointer<T> = Option<Rc<RefCell<BodyNode<T>>>>;
 type WeakNodePointer<T> = Option<Weak<RefCell<BodyNode<T>>>>;
 
@@ -40,7 +39,7 @@ fn convert_weak<T>(weak_ptr: &WeakNodePointer<T>) -> StrongNodePointer<T> {
 }
 
 impl<T> CellLinkedList<T> {
-  fn new() -> Self {
+  pub fn new() -> Self {
     CellLinkedList {
       head: None,
       tail: None,

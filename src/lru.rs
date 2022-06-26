@@ -4,6 +4,7 @@ use crate::linked_list::DLL;
 use std::marker::PhantomData;
 
 pub mod veclru;
+pub mod cellru;
 
 
 pub struct KeyHolder<K: Eq + Hash + Copy, T, L: DLL<(K, T)>> {
